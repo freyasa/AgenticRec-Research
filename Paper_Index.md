@@ -1,0 +1,11 @@
+# Paper Index
+
+| Paper | Motivation | Method | Year | Venue | Link |
+|---|---|---|---:|---|---|
+| MARS | Flat text memory mixes short-term behavior with stable preference and lacks an explicit memory lifecycle. | Maintains Event → Preference → Profile hierarchical belief-state memory; an LLM planner schedules extract/boost/demote/merge/forget/synthesize operations, while a frozen LLM ranker uses profile + recent events. | 2026 | arXiv | [Paper](https://arxiv.org/abs/2605.14401) · [Notes](papers/MARS.md) |
+| AMEM4Rec | Agentic recommenders rely heavily on semantic memory and often miss cross-user collaborative signals. | Converts LLM-generated behavior-pattern memories into SBERT vectors, links/evolves similar memories in a global pool, and retrieves relevant evolved patterns for LLM reranking. | 2026 | arXiv | [Paper](https://arxiv.org/abs/2602.08837) · [Notes](papers/AMEM4Rec.md) |
+| CoVeMem | Text memory is costly to rewrite and loses fine-grained collaborative geometry when embeddings are verbalized. | Trains LightGCN user/item states as frozen vector memory, maps them to LLM soft tokens with a projector, then trains projector + LoRA reader with semantic alignment and ranking loss. | 2026 | arXiv | [Paper](https://arxiv.org/abs/2608.26895) · [Notes](papers/CoVeMem.md) |
+| AgenticRec | Tool-augmented reasoning trajectories are not directly aligned with recommendation ranking feedback, limiting fine-grained preference discrimination. | RTA uses GRPO with ranking reward to train Think–Act–Observation–Recommendation trajectories; PPR mines self-bootstrapped hard pairs from ranking errors and continues GRPO refinement. | 2026 | arXiv | [Paper](https://arxiv.org/abs/2603.21613) · [Notes](papers/AgenticRec.md) |
+| RRCM | Fixed retrieval/RAG pipelines cannot decide which evidence is useful for each recommendation instance and may waste context. | Treats retrieval as an agent action: the LLM learns whether to retrieve collaborative memory, metadata memory, both, or neither; SFT warmup teaches tool use and GRPO optimizes the retrieval policy with ranking reward. | 2026 | arXiv | [Paper](https://arxiv.org/abs/2605.07129) · [Notes](papers/RRCM.md) |
+
+> `What is useful` is intentionally not maintained in this index. Research judgments stay in the detailed notes so the table remains easy to maintain.
