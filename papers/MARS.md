@@ -5,6 +5,14 @@
 - **Paper:** https://arxiv.org/abs/2605.14401
 - **Drive note:** https://docs.google.com/document/d/1QTHsldUIZ5ly8BCXxsjum1LDGz19hstkTptDroAwARk/edit
 
+
+
+## TLDR
+
+作者认为像MemRec那样把memory都聚在一起会把短期和长期记忆融合，并且长期记忆过于压缩损失细节。因此他提出三层分层memory架构分别控制原始记忆/短期记忆和长期记忆。论文没有训练模型，主要创新了memory的更新策略。
+
+![2026-09-10_ MARS](./imgs/2026-09-10_MARS.png)
+
 ## Motivation
 
 现有 memory-augmented LLM recommender 往往把短期行为、长期偏好和整体画像混在一段扁平文本里。这样会导致：
@@ -14,9 +22,9 @@
 - 缺少明确的强化、弱化、合并、遗忘等生命周期；
 - LLM 很难区分“最近发生了什么”和“用户稳定喜欢什么”。
 
-MARS 将推荐建模为部分可观测问题，用层次化 belief state 持续估计用户状态。
 
-## Core Method
+
+## Method
 
 每个用户维护三层状态：
 
@@ -28,6 +36,18 @@ MARS 将推荐建模为部分可观测问题，用层次化 belief state 持续�
 
 实验中使用有界 FIFO 队列，最多保留最近 15 条行为。新行为先进入这一层，不立即上升为长期偏好。
 
+```
+2026-09-01
+clicked:
+Nike Pegasus running shoes
+
+2026-09-02
+watched:
+marathon training video
+```
+
+
+
 ### 2. Preference Memory
 
 维护可独立修改的细粒度偏好单元：
@@ -36,6 +56,28 @@ MARS 将推荐建模为部分可观测问题，用层次化 belief state 持续�
 
 其中 `strength ∈ [-1, 1]` 表示喜欢/不喜欢及强度，`evidence` 记录支持或反驳次数。新证据只更新相关 preference chunk，而不是重写整个用户表示。
 
+```
+Preference Memory
+{
+ topic: running shoes
+ strength: 0.8
+ evidence:
+   Nike Pegasus click
+   marathon video
+ last_update:
+   2026-09-02
+},
+{
+ topic: basketball shoes
+ strength:0.3
+ evidence:
+   old purchases
+}
+
+```
+
+
+
 ### 3. Profile Memory
 
 把所有 preference chunks 合成为 150–300 词左右的自然语言用户画像：
@@ -43,6 +85,15 @@ MARS 将推荐建模为部分可观测问题，用层次化 belief state 持续�
 `Profile = Synthesizer(Preference Memory, Previous Profile)`
 
 最终排序器主要读取 **Profile + recent Event**。Preference Memory 更像中间状态，用于更新与合成，而不是把三层全部塞进 ranking prompt。
+
+```
+User prefers endurance sports equipment,
+especially running shoes.
+Recently shifted from basketball products
+to outdoor activities.
+```
+
+
 
 ## Memory Lifecycle
 
@@ -57,6 +108,8 @@ MARS 明确定义六种操作：
 
 Planner 根据当前状态决定执行哪些操作，也可以直接 skip。实验中每积累 3 条待处理行为检查一次状态；发生若干次 memory 变化后自动重建 Profile。
 
+
+
 ## Agent Structure
 
 更准确地说，MARS 是 **single-agent orchestration framework**，不是 multi-agent system。Extractor、Synthesizer、Planner、Ranker 是同一个系统里的不同 LLM 调用角色。
@@ -65,6 +118,8 @@ Planner 根据当前状态决定执行哪些操作，也可以直接 skip。实�
 - **Extractor**：从 pending events 提取或修改 preference；
 - **Synthesizer**：生成整体 Profile；
 - **Ranker**：根据 Profile、recent events、instruction 和候选完成排序。
+
+
 
 ## Training
 
@@ -76,6 +131,8 @@ MARS 本身基本 **不训练 LLM 参数**。
 - Planner 也没有通过 RL 学习 reward。
 
 因此要区分：**memory evolution ≠ model training**。
+
+
 
 ## Inference Example
 
@@ -89,6 +146,34 @@ MARS 本身基本 **不训练 LLM 参数**。
 
 论文设定是候选重排序，不是从完整 item catalog 中做召回。
 
+```
+User interaction
+       |
+       v
+Event Memory
+       |
+       v
+LLM Planner
+       |
+       +------ extraction
+       +------ update
+       +------ forget
+       |
+       v
+Preference Memory
+       |
+       v
+Profile Memory
+       |
+       v
+LLM recommender
+       |
+       v
+Ranking
+```
+
+
+
 ## Relation to MemRec / SAGER
 
 - **MemRec**：主要解决“参考谁的经验”，强调跨用户/物品 collaborative memory；
@@ -96,6 +181,8 @@ MARS 本身基本 **不训练 LLM 参数**。
 - **MARS**：主要解决“用户记忆如何组织和更新”，强调 Event → Preference → Profile 的纵向层次。
 
 三者关注点不同，MARS 的核心贡献不是 collaborative retrieval，而是显式的用户状态层次与 memory lifecycle。
+
+
 
 ## Discussion Notes
 

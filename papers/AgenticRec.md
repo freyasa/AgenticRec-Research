@@ -5,37 +5,29 @@
 - **Paper:** https://arxiv.org/abs/2603.21613
 - **Drive note:** https://docs.google.com/document/d/1kY43TuZrvWZYTMqGa7b9nC35IMX-nF-wAQIRbaKqYRg/edit
 
+
+
+## TLDR
+
+这篇文章不是<u>让模型走一次得到结果</u>的推荐，而是React风格的\[Think1→Act1→Obs1→Think2→Act2→Obs2→⋯→Rec\]的推荐。
+
+![2026-09-10_AgenticRec](./imgs/2026-09-10_AgenticRec.png)
+
 ## Motivation
 
-现有 recommender agent 即使能够调用工具，其 Think–Act–Observation trajectory 也未必和最终 ranking feedback 对齐。模型可能会“看起来在推理、也调用了工具”，但这些行为并没有真正帮助把真实下一交互 item 排得更靠前。
+1. 现有 recommender agent 即使能够调用工具，但是都是不训练的，理论上有可能不对齐。
 
-AgenticRec 的核心目标是：
+2. LLM 自己只有 language prior，但推荐真正重要的还有很多东西，比如 collaborative signal、用户统计行为、item metadata 等。
 
-> 直接用推荐排序反馈训练 agent 的工具使用与推理轨迹，再从模型自己的 ranking error 中挖掘 hard pairs，进一步细化 preference boundary。
+作者要train一个会自己调用工具的llm，实现react agent
 
-## Task Setting
 
-实验使用 Amazon Reviews 2023 的四个子集：
 
-- CDs and Vinyl
-- Musical Instruments
-- Office Products
-- Video Games
+## Method
 
-时间范围为 2022-10 到 2023-10，按时间 8:1:1 划分 train/valid/test，历史长度最多 10。
+### Agent Structure
 
-每个实例：
-
-- 1 positive
-- 19 random negatives
-- 20 candidates shuffled
-- 输出 Top-10
-
-因此本质仍是 sampled-candidate reranking，而不是 full-catalog retrieval。
-
-## Agent Structure
-
-系统中心是一个 **Qwen3-4B-Instruct-2507**，属于 single-agent ReAct-style framework。
+<u>系统中心是一个 **Qwen3-4B-Instruct-2507**，属于 single-agent ReAct-style framework。</u>
 
 一次推荐中可以反复执行：
 
@@ -50,21 +42,33 @@ AgenticRec 的核心目标是：
 
 这些 tool 不是独立 agent，只是外部函数/服务。
 
-## Training Preparation
+
+
+### Training Preparation
 
 在 RL 前先准备：
 
-- 在 Amazon train split 上训练 SASRec，建立 collaborative retrieval space；
-- 用同系列 Qwen 离线生成用户 profile；
-- 建立 metadata query tool；
-- 建立行为统计 tool；
-- 把交互转换成 1 positive + 19 negatives 的 ranking task。
+1. 在 Amazon train split 上<u>训练 SASRec</u>，建立 collaborative retrieval space；
 
-## Stage 1: RTA — Recommendation-Oriented Trajectory Activation
+2. 用同系列 Qwen <u>离线生成用户 profile</u>；
 
-### Rollout
+3. <u>建立 metadata query tool；</u>
 
-对同一个 request 采样 `G=8` 条 trajectory。不同 rollout 可以：
+4. <u>建立行为统计 tool；</u>
+
+5. 把交互转换成 1 positive + 19 negatives 的 ranking task。
+
+
+
+### Stage 1: RTA — Recommendation-Oriented Trajectory Activation
+
+<u>这里主要就是用了GRPO去实现模型更新</u>
+
+
+
+#### Rollout
+
+<u>对同一个 request 采样 `G=8` 条 trajectory</u>。不同 rollout 可以：
 
 - 调不同工具；
 - 形成不同 Think；
@@ -72,7 +76,7 @@ AgenticRec 的核心目标是：
 
 单条 trajectory 最多调用 10 次工具。
 
-### Ranking Reward
+#### Ranking Reward
 
 若格式合法且 positive 进入 Top-10，则 reward 使用 positive 所在位置对应的 NDCG@10。
 
@@ -82,9 +86,9 @@ AgenticRec 的核心目标是：
 - rank 2 → ~0.631
 - rank 3 → 0.5
 
-若 positive 不在 Top-10：`-0.5`；格式非法或 tool budget 超限：`-1`。如果 positive rank=1 且至少调用一次工具，还有额外 `+0.1`。
+*若 positive 不在 Top-10：`-0.5`；格式非法或 tool budget 超限：`-1`。如果 positive rank=1 且至少调用一次工具，还有额外 `+0.1`。*
 
-### GRPO
+#### GRPO
 
 同一 request 的 8 条 trajectory 计算组内 baseline，简化优势可写为：
 
@@ -92,13 +96,15 @@ AgenticRec 的核心目标是：
 
 高于组均值的轨迹被增强，低于组均值的被抑制。RTA 训练 3 epochs。
 
-关键点：这里优化的是 **整条 agent trajectory 的生成概率**，不是一个静态 ranking classifier。
 
-## Stage 2: PPR — Progressive Preference Refinement
 
-RTA 之后，用当前 policy 重新跑训练实例并查看自己的 ranking errors。
+### Stage 2: PPR — Progressive Preference Refinement
 
-### Hard-Negative Mining
+<u>第一次是在所有样本都去做了GRPO，但这样准确率可能没那么高，所以**再需要做一次hard neg sample上的GRPO**</u>
+
+
+
+#### Hard-Negative Mining
 
 如果 positive `c+` 不是第 1：
 
@@ -112,7 +118,9 @@ RTA 之后，用当前 policy 重新跑训练实例并查看自己的 ranking er
 
 论文实际报告的是一轮 PPR（1 epoch），并没有持续多轮“重挖—再训练”。
 
-### Bidirectional Preference Task
+
+
+#### Bidirectional Preference Task
 
 同一个 hard pair 被改写成两个 prompt：
 
@@ -121,7 +129,9 @@ RTA 之后，用当前 policy 重新跑训练实例并查看自己的 ranking er
 
 两个任务仍允许 Think + tools + Observation。
 
-### PPR Still Uses GRPO
+
+
+#### PPR Still Uses GRPO
 
 PPR 没有直接计算 BPR / hinge / logistic loss。
 
@@ -134,34 +144,21 @@ PPR 没有直接计算 BPR / hinge / logistic loss。
 
 论文理论里出现的 pairwise logistic expression 主要是解释双向训练，不是实现中的直接 supervised loss。
 
-## How Multi-Step Trajectory Is Backpropagated
 
-这是我们讨论里一个很重要的问题。
 
-### Rollout Is Interactive
-
-真实执行不是一次性生成：
-
-1. LLM 生成 `Think1 + Act1`；
-2. 程序执行工具并插入 `Obs1`；
-3. 再把已有 transcript 输入 LLM；
-4. 继续生成 `Think2 + Act2`；
-5. 插入 `Obs2`；
-6. 最后生成 `Recommendation`。
-
-### Training Reconstructs One Transcript
+### 这种ReAct的trajectory是怎么训练的
 
 rollout 完成后，系统已有完整 transcript：
 
 `[Prompt, Think1, Act1, Obs1, Think2, Act2, Obs2, Rec]`
 
-训练时将其拼成普通 causal sequence，但使用 action mask：
+**<u>训练时将其拼成普通 causal sequence，但使用 action mask：</u>**
 
-- Prompt: mask 0
-- Observation: mask 0
-- Think / Act / Rec: mask 1
+- <u>Prompt: mask 0</u>
+- <u>Observation: mask 0</u>
+- <u>Think / Act / Rec: mask 1</u>
 
-因此可以通过一次 teacher-forcing forward 重算所有 policy token 的 log probability。
+**<u>因此可以通过一次 teacher-forcing forward 重算所有 policy token 的 log probability。</u>**
 
 轨迹概率只包含 LLM 自己生成的部分：
 
@@ -169,26 +166,7 @@ rollout 完成后，系统已有完整 transcript：
 
 Observation 属于 environment，只作为后续 token 的 context，不参与 policy log-prob，也不会把梯度传回 SASRec/tool。
 
-## Why NDCG Can Train the LLM
 
-NDCG 不需要可导，因为这里是 policy gradient。
-
-简化目标：
-
-`L ≈ - Σ_g A(g) Σ_{t:mask=1} log πθ(z_t^(g) | z_<t^(g))`
-
-ranking metric 只作为 detach 的 scalar reward/advantage：
-
-- `A > 0`：提高整条自生成 trajectory 的概率；
-- `A < 0`：降低它的概率。
-
-因此底层仍然依赖 next-token log-probability 获得梯度，但这不是普通 SFT/NTP，而更接近 **reward-weighted next-token policy optimization**。
-
-## Credit Assignment Limitation
-
-整条 trajectory 通常共享一个最终 advantage，所以模型只能统计性学到“哪些工具调用/推理模式更经常带来高 reward”。它不能严格知道某一句 Think 或某一个 tool call 的独立因果贡献。
-
-因此是 trajectory-level credit assignment，而不是精确 step-level attribution。
 
 ## Experiments
 
@@ -197,22 +175,3 @@ ranking metric 只作为 detach 的 scalar reward/advantage：
 消融也显示：未经训练的工具调用并不天然有用。某些数据集上 Frozen tool-integrated reasoning 甚至低于 frozen reasoning-only；经过 RTA 后工具增强才稳定变好。
 
 PPR 在多个数据集的 H@1 上进一步提升。
-
-## Important Open Questions
-
-论文尚未充分拆解：
-
-- 四种工具各自贡献多大；
-- hard negative 相对 random negative 的独立贡献；
-- bidirectional PPR 是否真的优于 positive-only PPR；
-- 训练采用 full-parameter GRPO 还是 LoRA/QLoRA；
-- sampled 20-candidate setting 对真实 hard retrieval candidate 的泛化。
-
-## Key Takeaway from Our Discussion
-
-这篇论文最值得单独记住的不是“用了 agent”本身，而是两个技术点：
-
-1. **用最终 listwise ranking feedback 直接优化工具增强 trajectory**；
-2. **从当前 policy 的 ranking violation 中自挖 hard negatives，再继续 refinement**。
-
-而所谓 bidirectional preference reasoning 的独立贡献仍缺少 positive-only ablation。

@@ -2,10 +2,10 @@
 
 | Paper | 动机 | 方法 | 什么有用 | Year | Venue | Link |
 |---|---|---|---|---|---|---|
-| MARS | 平铺式文本 memory 将短期行为与稳定偏好混合，且缺少明确的 memory 生命周期管理。 | 构建 Event → Preference → Profile 的层次化 belief-state memory；使用 LLM planner 调度 extract/boost/demote/merge/forget/synthesize 操作，冻结 LLM ranker 使用 profile 与近期事件进行推荐。 |  | 2026.05 | arXiv | [Paper](https://arxiv.org/abs/2605.14401) · [Notes](papers/MARS.md) |
-| AMEM4Rec | Agentic 推荐系统过度依赖语义 memory，难以利用跨用户协同信号。 | 将 LLM 生成的行为模式 memory 转换为 SBERT 向量，构建全局 memory pool，通过 memory 演化与检索增强 LLM reranking。 |  | 2026.02 | arXiv | [Paper](https://arxiv.org/abs/2602.08837) · [Notes](papers/AMEM4Rec.md) |
-| CoVeMem | 文本 memory 需要频繁重写，并且将 embedding 语言化会丢失细粒度协同几何信息。 | 使用 LightGCN 学习并冻结 user/item 状态作为向量 memory，通过 projector 转换为 LLM soft token，再使用语义对齐和排序损失训练 projector 与 LoRA reader。 |  | 2026.08 | arXiv | [Paper](https://arxiv.org/abs/2608.26895) · [Notes](papers/CoVeMem.md) |
-| AgenticRec | 工具增强推理 trajectory 与推荐反馈存在错位，限制模型学习细粒度用户偏好。 | RTA 使用 GRPO 和 ranking reward 训练 Think–Act–Observation–Recommendation trajectory；PPR 从排序错误中挖掘 self-bootstrapped hard pair，并继续进行 GRPO 优化。 |  | 2026.03 | arXiv | [Paper](https://arxiv.org/abs/2603.21613) · [Notes](papers/AgenticRec.md) |
+| MARS | 平铺式文本 memory 将短期行为与稳定偏好混合，并且没有memory生命周期 | 提出了分层的memory，分别包含最近历史记录，短期/长期兴趣。每次inference的时候会先通过Extract整理memory，同时根据memory进行推荐。![2026-09-10_ MARS](./papers/imgs/2026-09-10_MARS.png) |  | 2026.05 | arXiv | [Paper](https://arxiv.org/abs/2605.14401) · [Notes](papers/MARS.md) |
+| AMEM4Rec | 现有的工作只制作了user自己的memory，没有考虑到协同的东西 | 创建了一个memory池。让llm能够使用当前user的memory去检索内存池中的shared memory。shared memory创建方法为生成所有的user memory，相似度最高的一对送入llm生成合并后的memory。![2026-09-10_ AMEM4Rec](./papers/imgs/2026-09-10_ AMEM4Rec.png) |  | 2026.02 | arXiv | [Paper](https://arxiv.org/abs/2602.08837) · [Notes](papers/AMEM4Rec.md) |
+| CoVeMem | 如果像MemRec一样去做text memory是很浪费token的 | 使用embedding代替text去做memory：1. 首先用CF训练了一个embedding表征user和item；2. 把这个embedding对齐到LLM emb的宽度；3. 继续训练projector+LLM lora（使用了LLM listwise loss）![2026-09-10_CoVeMem](./papers/imgs/2026-09-10_CoVeMem.png) |  | 2026.08 | arXiv | [Paper](https://arxiv.org/abs/2608.26895) · [Notes](papers/CoVeMem.md) |
+| AgenticRec | 不训练的LLM agent是没法自己根据情况调用工具的 | ReAct Agent: 使用GRPO去做两阶段训练：1. 在所有样本生成不同trajectory做GRPO；2. 在hard-neg sample上生成不同trajectory做GRPO![2026-09-10_AgenticRec](./papers/imgs/2026-09-10_AgenticRec.png) |  | 2026.03 | arXiv | [Paper](https://arxiv.org/abs/2603.21613) · [Notes](papers/AgenticRec.md) |
 | RRCM | 固定 retrieval/RAG pipeline 无法根据不同推荐实例判断需要什么信息，可能造成无效 context 使用。 | 将 retrieval 视为 agent action，让 LLM 学习是否检索、选择 Collaborative Memory 或 Meta Memory；通过 SFT warmup 学习工具调用，再使用 GRPO 根据 ranking reward 优化 retrieval policy。 |  | 2026.05 | arXiv | [Paper](https://arxiv.org/abs/2605.07129) · [Notes](papers/RRCM.md) |
 
 > `什么有用` 暂不维护，研究判断保留在详细笔记中，保证索引表易于维护。
