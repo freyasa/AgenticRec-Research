@@ -1,4 +1,4 @@
-# MARS — Agentic Recommender System with Hierarchical Belief-State Memory
+# Agentic Recommender System with Hierarchical Belief-State Memory
 
 - **Year:** 2026
 - **Venue:** arXiv

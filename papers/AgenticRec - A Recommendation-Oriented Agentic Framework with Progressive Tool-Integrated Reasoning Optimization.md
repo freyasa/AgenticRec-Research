@@ -1,4 +1,4 @@
-# AgenticRec — A Recommendation-Oriented Agentic Framework with Progressive Tool-Integrated Reasoning Optimization
+# AgenticRec: A Recommendation-Oriented Agentic Framework with Progressive Tool-Integrated Reasoning Optimization
 
 - **Year:** 2026
 - **Venue:** arXiv

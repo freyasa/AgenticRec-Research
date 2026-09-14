@@ -1,4 +1,4 @@
-# RRCM — Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation
+# RRCM: Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation
 
 - **Year:** 2026
 - **Venue:** arXiv
@@ -11,7 +11,7 @@ ReAct Agent + 双Memory，使用GRPO训练
 
 
 
-![2026-09-10_ RRCM](./imgs/2026-09-10_ RRCM.png)
+![2026-09-10_ RRCM](./imgs/2026-09-10_RRCM.png)
 
 ## Motivation
 

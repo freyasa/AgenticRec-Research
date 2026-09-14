@@ -1,4 +1,4 @@
-# CoVeMem — When Memory Takes Gradients: Collaborative Vector Memory for Agentic Recommender Systems
+# When Memory Takes Gradients: Collaborative Vector Memory for Agentic Recommender Systems
 
 - **Year:** 2026
 - **Venue:** arXiv
@@ -13,7 +13,7 @@
 
 
 
-![2026-09-10_ CoVeMem](./imgs/2026-09-10_ CoVeMem.png)
+![2026-09-10_ CoVeMem](./imgs/2026-09-10_CoVeMem.png)
 
 ## Motivation
 

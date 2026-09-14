@@ -1,4 +1,4 @@
-# AMEM4Rec — Leveraging Cross-User Similarity for Memory Evolution in Agentic LLM Recommenders
+# AMEM4Rec: Leveraging Cross-User Similarity for Memory Evolution in Agentic LLM Recommenders
 
 - **Year:** 2026
 - **Venue:** arXiv
@@ -11,7 +11,7 @@
 
 现有的Agent依靠额外的CF模型提供协同能力，或直接没有协同能力。作者不训练LLM，将每个用户独立的 memory 扩展为一个共享的跨用户 memory pool，通过 memory evolution 聚合相似用户的偏好模式。
 
-![2026-09-10_ AMEM4Rec](./imgs/2026-09-10_ AMEM4Rec.png)
+![2026-09-10_AMEM4Rec](./imgs/2026-09-10_AMEM4Rec.png)
 
 
 
