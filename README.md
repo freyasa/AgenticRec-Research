@@ -5,11 +5,13 @@ Personal research wiki for **agentic recommendation** and **LLM-based recommende
 ## Navigation
 
 - [Paper Index](Paper_Index.md)
+- [Research Motivation](Motivation.md)
 - [MARS](<papers/Agentic Recommender System with Hierarchical Belief-State Memory.md>)
 - [AMEM4Rec](<papers/AMEM4Rec - Leveraging Cross-User Similarity for Memory Evolution in Agentic LLM Recommenders.md>)
 - [CoVeMem](<papers/When Memory Takes Gradients - Collaborative Vector Memory for Agentic Recommender Systems.md>)
 - [AgenticRec](<papers/AgenticRec - A Recommendation-Oriented Agentic Framework with Progressive Tool-Integrated Reasoning Optimization.md>)
 - [RRCM](<papers/RRCM - Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation.md>)
+- [MemRec](<papers/MemRec - Collaborative Memory-Augmented Agentic Recommender System.md>)
 
 ## Organization
 
@@ -17,12 +19,14 @@ Personal research wiki for **agentic recommendation** and **LLM-based recommende
 AgenticRec-Research/
 ├── README.md
 ├── Paper_Index.md
+├── Motivation.md
 └── papers/
     ├── Agentic Recommender System with Hierarchical Belief-State Memory.md
     ├── AMEM4Rec - Leveraging Cross-User Similarity for Memory Evolution in Agentic LLM Recommenders.md
     ├── When Memory Takes Gradients - Collaborative Vector Memory for Agentic Recommender Systems.md
     ├── AgenticRec - A Recommendation-Oriented Agentic Framework with Progressive Tool-Integrated Reasoning Optimization.md
-    └── RRCM - Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation.md
+    ├── RRCM - Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation.md
+    └── MemRec - Collaborative Memory-Augmented Agentic Recommender System.md
 ```
 
 `Paper_Index.md` 用于快速回忆论文的 motivation / method / metadata；详细讨论保存在对应的 `papers/*.md` 中。
