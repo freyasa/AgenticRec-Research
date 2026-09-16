@@ -31,7 +31,11 @@ b. **Agent Memory更新相关问题**
 
    Solution：
 
+   - ❗️根据文章 <u>Useful Memories Become Faulty When Continuously Updated by LLMs</u>，能不能设置一个cache，保留用户一些近期序列信息放到一起进行压缩，这样能保留信息。（不知道有没有这样做的）
    - 使用单词/短语作为memory。方便concat，<u>压缩可能麻烦点</u>。
+   - <u>更新不使用LLM，直接在外部用小模型更新。查看新的item和history以及CF的相似度（FPMC）</u>
+
+
 
 
 
@@ -56,6 +60,10 @@ b. **Agent Memory更新相关问题**
 c. **其他问题**
 
 1. **如何在有限的token下给Frozen LLM更多的信息（LLM生成，未验证）**
+
+   Solution：
+
+   - 用word替代sentence
 
 
 
