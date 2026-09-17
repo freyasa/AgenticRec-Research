@@ -20,7 +20,7 @@ b. **Agent Memory更新相关问题**
 
 
 
-2. **<u>LLM未能准确更新memory的内容（有些memory带有权重，更新权重较为准确，但是权重很低时会替换memory内容，同样存在以上问题），导致更新后的memory越来越没有代表性，宽泛而没有重点</u>（未验证）**
+2. **<u>LLM未能准确更新memory的内容（有些memory带有权重，更新权重较为准确，但是权重很低时会替换memory内容，同样存在以上问题），导致更新后的memory越来越同质化、没有代表性、宽泛而没有重点</u>（未验证）**
 
    Reason：
 
@@ -31,8 +31,8 @@ b. **Agent Memory更新相关问题**
 
    Solution：
 
-   - ❗️根据文章 <u>Useful Memories Become Faulty When Continuously Updated by LLMs</u>，能不能设置一个cache，保留用户一些近期序列信息放到一起进行压缩，这样能保留信息。（不知道有没有这样做的）
-   - 使用单词/短语作为memory。方便concat，<u>压缩可能麻烦点</u>。
+   - ❗️根据文章 <u>Useful Memories Become Faulty When Continuously Updated by LLMs</u>，能不能设置一个cache，保留用户一些近期序列信息放到一起进行压缩，这样能保留信息。（不知道有没有这样做的）**<u>实验结论：在所有简单方法中，这样的结果较好。</u>**
+   - 使用单词/短语作为memory。方便concat，<u>压缩可能麻烦点</u>。**<u>实验结论：多个词汇词义相近，信息密度低。</u>**
    - <u>更新不使用LLM，直接在外部用小模型更新。查看新的item和history以及CF的相似度（FPMC）</u>
 
 
