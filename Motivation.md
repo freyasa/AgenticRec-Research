@@ -16,7 +16,7 @@ b. **Agent Memory更新相关问题**
 
 1. **<u>简单的一个Memory会融合不同方面，尺度的信息，导致memory出现宽泛的问题（未验证）</u>**
 
-​	解决方案：设置层级的memory
+​	解决方案：设置层级的memory（<u>MARS</u>、<u>TierMem</u>）
 
 
 
@@ -25,9 +25,12 @@ b. **Agent Memory更新相关问题**
    Reason：
 
    - 本质还是text的信息太稀疏了，没法像embedding一样融很多东西进去。最终解法就是c.1；
-
    - 另外emb的更新是 \[\boxed{\theta_{k+1}=\theta_k+\text{gradient from original observations}}\] 的，但是LLM是 \[\boxed{M_{t+1}=LLM(M_t,\text{new observation})}\] 的。这样LLM容易丢失信息。总结就是：<u>Embedding-based model 也会不断更新 representation，但这种更新是 loss-grounded 的；LLM memory evolution 则通常是 generation-grounded 的</u>。
    - 现有的模型基本都是使用短句/句子去做memory的，句子的信号就更稀疏了。
+
+   可研究的问题节点：
+
+   - 上述第 2 点：text-based memory 的更新不是 loss-grounded 的。
 
    Solution：
 
@@ -53,7 +56,7 @@ b. **Agent Memory更新相关问题**
 
 5. <u>**现在多数模型都不太考虑时序信息，或只使用长短期记忆这种弱时序信号（再叠加问题2），导致无法感知细粒度的长短期信息（未验证）**</u>
 
-   TODO：查看一下CF的发展历程，当时CF发展到下一阶段是如何加上时序的？
+   TODO：查看一下CF的发展历程，当时CF发展到下一阶段是如何加上时序的：TimeSVD++ 在原始的CF矩阵上加一个马尔可夫链体现时序信息。但没有参考价值
 
 
 
@@ -70,3 +73,38 @@ c. **其他问题**
 # 其他探索
 
 1. 长短期记忆真的偏好很大吗（未验证）
+
+
+
+
+
+做一个统一的东西：**LLM未能准确把历史信息转化为能够帮助Rec model进行决策的memory**
+有两个原因：
+
+1. llm更新导致信息熵下降
+
+   解决方法：
+
+   - 硬性：设立一个指标（如TF-IDF），强迫模型更新后的信息密度更大。
+   - 软性：设计prompt让llm更新
+   - 修改模型：分层/memory池
+
+2. 现有的模型没有直接输入时序信息
+
+   解决方法：
+
+   - 软注入：每次新进入item就更新memory，越久的东西被总结的次数越多，越新的东西被总结的次数越少
+   - 硬注入：分层/显示使用item的时间信息写入memory。
+
+
+
+**sample amazon yelp 60 user<u>随机负样本</u>的实验**
+
+做法：使用trainset每个item初始化memory。在test上listwise打分。
+
+实验结论：
+
+1. **<u>memrec</u>**好于**<u>memory为全历史总结+最近20个title</u>**好于**<u>全部商品名称</u>**好于**<u>逐个item改写</u>**好于<u>**group改写**</u>、**<u>双memory</u>**、**<u>多slot memory</u>**（不排除prompt原因）。因此随机负样本无法凸显memory的改进，<u>后续需要用hard-negative去做</u>。
+
+2. 不同长度的history适合不同的方法。10和70len使用**<u>全历史总结+最近20个title</u>**最好。20和50len **<u>逐个item改写</u>**最好。100len用**<u>全部商品名称</u>**更好。
+3. 使用TF-IDF分析：一个user的memory每个word，组成一个向量；把这个向量和其他59user计算取平均，得到**<u>一个用户间cosine分数</u>**。结果是**<u>NDCG和这个指标无关</u>**。
