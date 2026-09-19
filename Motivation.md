@@ -2,7 +2,9 @@
 
 a. **模型依靠LLM进行打分的问题**
 
-1. **LLM更适合listwise而不是pointwise的打分。LLM没法解释为什么给一个item打80分（未验证）**
+1. **LLM更适合listwise而不是pointwise的打分。LLM没法解释为什么给一个item打80分（假说不成立）**
+
+   详情：listwise的优点就是能够相互比较，最后根据结果排序。但当样本为hard-negative的时候，LLM不一定能通过大片的prompt分析出哪个更符合user，反而有可能相互影响。从而导致排序结果不如pointwise。**<u>但也不是绝对的</u>**
 
    解决方案：
 
@@ -28,17 +30,41 @@ b. **Agent Memory更新相关问题**
    - 另外emb的更新是 \[\boxed{\theta_{k+1}=\theta_k+\text{gradient from original observations}}\] 的，但是LLM是 \[\boxed{M_{t+1}=LLM(M_t,\text{new observation})}\] 的。这样LLM容易丢失信息。总结就是：<u>Embedding-based model 也会不断更新 representation，但这种更新是 loss-grounded 的；LLM memory evolution 则通常是 generation-grounded 的</u>。
    - 现有的模型基本都是使用短句/句子去做memory的，句子的信号就更稀疏了。
 
-   可研究的问题节点：
+   *可研究的问题节点：*
 
-   - 上述第 2 点：text-based memory 的更新不是 loss-grounded 的。
+   - *上述第 2 点：text-based memory 的更新不是 loss-grounded 的。*
 
    Solution：
 
-   - ❗️根据文章 <u>Useful Memories Become Faulty When Continuously Updated by LLMs</u>，能不能设置一个cache，保留用户一些近期序列信息放到一起进行压缩，这样能保留信息。（不知道有没有这样做的）**<u>实验结论：在所有简单方法中，这样的结果较好。</u>**
+   - ❗️根据文章 <u>Useful Memories Become Faulty When Continuously Updated by LLMs</u>，能不能设置一个cache，保留用户一些近期序列信息放到一起进行压缩，这样能保留信息。（不知道有没有这样做的）**<u>实验结论：在所有简单方法中，这样的结果一般，Append效果要比改写好。</u>**
    - 使用单词/短语作为memory。方便concat，<u>压缩可能麻烦点</u>。**<u>实验结论：多个词汇词义相近，信息密度低。</u>**
    - <u>更新不使用LLM，直接在外部用小模型更新。查看新的item和history以及CF的相似度（FPMC）</u>
 
+*<u>**什么是窄化，作时间序列图，最开始分散后面集中。**</u>*
 
+*<u>**anchor**</u>*
+
+**<u>Alpha edit</u>**
+
+> **先证明自己的机制解释是对的，再证明基于这个解释设计的方法有效。**
+
+
+
+先验证现象是否存在
+- 最新的memory更新的rec模型改进分类
+
+- 有了别人的经验设计一个实验框架。（其他相同类型工作的作者都认可的setting）
+- 产物：一个方法/机制，不耦合于代码。像lora一样能够整合到其他模型当中。
+
+
+
+
+
+**Analysis-driven paper**总体的步骤是：
+
+1. 先提出一个新的分析视角，并用理论推导 + 一系列机制实验验证它
+2. 根据这个分析，解决方案非常直接，因此方法本身很小
+3. 再证明这个小改动确实有效，而且具有一定通用性
 
 
 
@@ -50,13 +76,15 @@ b. **Agent Memory更新相关问题**
 
 4. **不同 LLM 之间能否直接迁移 memory/skill/policy（LLM生成，未验证）**
 
-​	解决方案：
+​	解决方案：*<u>zhaoziyi</u>*
 
 
 
 5. <u>**现在多数模型都不太考虑时序信息，或只使用长短期记忆这种弱时序信号（再叠加问题2），导致无法感知细粒度的长短期信息（未验证）**</u>
 
-   TODO：查看一下CF的发展历程，当时CF发展到下一阶段是如何加上时序的：TimeSVD++ 在原始的CF矩阵上加一个马尔可夫链体现时序信息。但没有参考价值
+   TODO：查看一下CF的发展历程，当时CF发展到下一阶段是如何加上时序的：TimeSVD++ 在原始的CF矩阵上加一个马尔可夫链体现时序信息。**实验结论：没有参考价值。emb能直接相加，text没办法**
+   
+   
 
 
 
@@ -93,8 +121,9 @@ c. **其他问题**
 
    解决方法：
 
-   - 软注入：每次新进入item就更新memory，越久的东西被总结的次数越多，越新的东西被总结的次数越少
+   - 软注入：每次新进入item就更新memory，越久的东西被总结的次数越多，越新的东西被总结的次数越少。
    - 硬注入：分层/显示使用item的时间信息写入memory。
+   - 加在协同层：做一个时序图。
 
 
 
@@ -108,3 +137,8 @@ c. **其他问题**
 
 2. 不同长度的history适合不同的方法。10和70len使用**<u>全历史总结+最近20个title</u>**最好。20和50len **<u>逐个item改写</u>**最好。100len用**<u>全部商品名称</u>**更好。
 3. 使用TF-IDF分析：一个user的memory每个word，组成一个向量；把这个向量和其他59user计算取平均，得到**<u>一个用户间cosine分数</u>**。结果是**<u>NDCG和这个指标无关</u>**。
+4. 在**<u>本数据集上</u>**，**<u>sample negative使用listwise打分更好；而 hard-negative上使用pointwise更好</u>**。（后续实验表明并不一定，hard也可能listwise稍强）
+
+   ~~强行~~解释：pointwise每次只看到一个candidate，不会被其他candidate生成的模式所影响，让user memory主导评测。而在没那么强的negative sample上反而可以用listwise进行item之间的对比。
+   
+5. 使用no llm的基于分词匹配的方案效果远高于任何模型（包括MemRec、SAGER）

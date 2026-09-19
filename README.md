@@ -14,6 +14,7 @@ Personal research wiki for **agentic recommendation** and **LLM-based recommende
 - [MemRec](<papers/MemRec - Collaborative Memory-Augmented Agentic Recommender System.md>)
 - [Useful Memories Become Faulty When Continuously Updated by LLMs](<papers/Useful Memories Become Faulty When Continuously Updated by LLMs.md>)
 - [TierMem](<papers/From Lossy to Verified A Provenance-Aware Tiered Memory for Agents.md>)
+- [ReliGRec](papers/ReliGRec-Reliability-Oriented-LLM-Based-Generative-Recommendation-via-User-Risk-Aware-Prompt-Routing.md)
 
 ## Organization
 
@@ -30,7 +31,8 @@ AgenticRec-Research/
     ├── RRCM - Ranking-Driven Retrieval over Collaborative and Meta Memories for LLM Recommendation.md
     ├── MemRec - Collaborative Memory-Augmented Agentic Recommender System.md
     ├── Useful Memories Become Faulty When Continuously Updated by LLMs.md
-    └── From Lossy to Verified A Provenance-Aware Tiered Memory for Agents.md
+    ├── From Lossy to Verified A Provenance-Aware Tiered Memory for Agents.md
+    └── ReliGRec-Reliability-Oriented-LLM-Based-Generative-Recommendation-via-User-Risk-Aware-Prompt-Routing.md
 ```
 
 `Paper_Index.md` 用于快速回忆论文的 motivation / method / metadata；详细讨论保存在对应的 `papers/*.md` 中。
