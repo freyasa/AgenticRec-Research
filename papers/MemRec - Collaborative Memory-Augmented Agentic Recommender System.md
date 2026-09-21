@@ -3,6 +3,7 @@
 - **Year:** 2026
 - **Venue:** ACL2026
 - **Paper:** https://arxiv.org/abs/2601.08816
+- **Code:** https://github.com/rutgerswiselab/MemRec
 
 
 
@@ -200,4 +201,3 @@ Item 10 当前 memory
 +
 相关 neighbors
 ```
-
