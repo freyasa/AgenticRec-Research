@@ -1,7 +1,7 @@
 # iAgent: LLM Agent as a Shield between User and Recommender Systems
 
 - **Year:** 2025
-- **Venue:** ACL 2025 Findings
+- **Venue:** Findings of ACL 2025
 - **Paper:** https://arxiv.org/abs/2502.14662 / https://aclanthology.org/2025.findings-acl.928.pdf
 - **Code:** https://github.com/WujiangXu/iAgent
 

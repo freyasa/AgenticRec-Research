@@ -1,7 +1,7 @@
 # AgentCF: Collaborative Learning with Autonomous Language Agents for Recommender Systems
 
 - **Year:** 2023
-- **Venue:** WWW 24
+- **Venue:** WWW 2024
 - **Paper:** https://arxiv.org/abs/2310.09233
 - **Code:** https://github.com/RUCAIBox/AgentCF
 

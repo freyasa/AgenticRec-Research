@@ -1,7 +1,7 @@
 # MemRec: Collaborative Memory-Augmented Agentic Recommender System
 
 - **Year:** 2026
-- **Venue:** ACL2026
+- **Venue:** ACL 2026
 - **Paper:** https://arxiv.org/abs/2601.08816
 - **Code:** https://github.com/rutgerswiselab/MemRec
 

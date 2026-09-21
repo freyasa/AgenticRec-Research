@@ -1,7 +1,7 @@
 # From Lossy to Verified: A Provenance-Aware Tiered Memory for Agents
 
 - **Year:** 2026
-- **Venue:** arXiv
+- **Venue:** COLM 2026
 - **Paper:** https://arxiv.org/abs/2602.17913
 - **Code:** https://github.com/FreedomIntelligence/Tiermem
 
