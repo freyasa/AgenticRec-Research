@@ -40,40 +40,6 @@ b. **Agent Memory更新相关问题**
    - 使用单词/短语作为memory。方便concat，<u>压缩可能麻烦点</u>。**<u>实验结论：多个词汇词义相近，信息密度低。</u>**
    - <u>更新不使用LLM，直接在外部用小模型更新。查看新的item和history以及CF的相似度（FPMC）</u>
 
-*<u>**什么是窄化，作时间序列图，最开始分散后面集中。**</u>*
-
-*<u>**anchor**</u>*
-
-**<u>Alpha edit</u>**
-
-> **先证明自己的机制解释是对的，再证明基于这个解释设计的方法有效。**
-
-\[\boxed{ \begin{aligned} &1.\ \text{Repeated LLM update causes memory narrowing.}\\ &2.\ \text{Define and measure what “narrowing” means.}\\ &3.\ \text{Identify which information is systematically lost.}\\ &4.\ \text{Show narrowing predicts recommendation degradation.}\\ &5.\ \text{Use controlled studies to isolate its cause.}\\ &6.\ \text{Derive a minimal intervention from that cause.}\\ &7.\ \text{Show the intervention improves MemRec / other Agentic Rec.} \end{aligned} }\]
-
-
-
-先验证现象是否存在
-- 最新的memory更新的rec模型改进分类
-
-- 有了别人的经验设计一个实验框架。（其他相同类型工作的作者都认可的setting）
-- 产物：一个方法/机制，不耦合于代码。像lora一样能够整合到其他模型当中。
-
-
-
-下一步干啥：
-
-1. 分析不同模型的内存更新偏好，以及每个内存更新的优缺点
-2. 画一个memory迭代图
-3. 
-
-
-
-**Analysis-driven paper**总体的步骤是：
-
-1. 先提出一个新的分析视角，并用理论推导 + 一系列机制实验验证它
-2. 根据这个分析，解决方案非常直接，因此方法本身很小
-3. 再证明这个小改动确实有效，而且具有一定通用性
-
 
 
 3. **未能充分利用数据集信息（包括未充分利用协同信息、历史交互）（未验证）**
@@ -103,18 +69,6 @@ c. **其他问题**
    Solution：
 
    - 用word替代sentence
-
-
-
-现有的工作
-
-| 工作                                    | 是否真正连续更新                                             | 是否开源                                                     | 对你研究的价值                                               |
-| --------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **AgentCF, WWW 2024**                   | **是**。每轮 user/item interaction 后根据正负 item 和预测结果做 reflection，更新 user/item memory；论文明确写 `Collaborative Reflection and Memory Update`，而且 interaction/reflection 会迭代进行。([OpenReview](https://openreview.net/pdf?id=knAtuqBXDV&utm_source=chatgpt.com)) | **是**，官方代码公开。([GitHub](https://github.com/RUCAIBox/AgentCF?utm_source=chatgpt.com)) | **非常高。** 最标准的“旧 textual memory → LLM reflection → 新 textual memory”，非常适合研究 repeated rewriting 是否 narrowing。 |
-| **i²Agent / iAgent, ACL Findings 2025** | **是，而且特别干净。** 用户 profile 满足 $F^T=M(F^{T-1},\text{new feedback},\dots)$，上一轮生成的 profile 直接进入下一轮，再根据最新正样本/feedback 重写。([ResearchGate](https://www.researchgate.net/publication/394269751_iAgent_LLM_Agent_as_a_Shield_between_User_and_Recommender_Systems?utm_source=chatgpt.com)) | **是**，代码和 InstructRec 数据都公开。([GitHub](https://github.com/WujiangXu/iAgent?utm_source=chatgpt.com)) | **我最推荐先做。** 它基本就是你想分析的 recursive user-profile rewriting，没有 collaborative graph 等复杂因素。 |
-| **AgentCF++, SIGIR 2025**               | **是**。继承 AgentCF 的逐 interaction memory update，同时加入 single-domain / cross-domain user memory。代码中明确循环处理 interaction，读取旧 memory、LLM 生成新 memory、覆盖保存。([GitHub](https://github.com/jhliu0807/AgentCF-plus/blob/main/AgentCF%2B%2B.py)) | **是**。([GitHub](https://github.com/jhliu0807/AgentCF-plus?utm_source=chatgpt.com)) | **非常高。** 更妙的是代码已经有 `save_old_memory`、`save_new_memory`，并且每处理 10% interaction 就 `save_memory` 做 checkpoint，天然适合你做 memory trajectory analysis。([GitHub](https://github.com/jhliu0807/AgentCF-plus/blob/main/AgentCF%2B%2B.py)) |
-| **MemRec, ACL 2026**                    | **是**。论文明确写 $M_u^t,M_i^t\leftarrow LM_{Mem}(M_u^{t-1},M_i^{t-1},\dots)$，用户每次与 item 交互后更新当前 user/item memory，同时向 neighbor propagation。([ResearchGate](https://www.researchgate.net/publication/399754091_MemRec_Collaborative_Memory-Augmented_Agentic_Recommender_System?utm_source=chatgpt.com)) | **是，完整 repo 已公开**，包含 memory manager、pruner、dataset conversion 和运行脚本。([GitHub](https://github.com/rutgerswiselab/memrec)) | **高，但适合第二阶段。** 它比前三个复杂，因为 narrowing 可能同时来自 self-rewrite 和 collaborative propagation。可以研究“isolated narrowing vs collaborative contamination”。 |
-| **Agent4Rec, SIGIR 2024**               | **memory 会随模拟过程积累/反思**，包括 factual memory、emotional memory 和 reflection，但不是最纯粹的“不断重写同一个 preference profile”。([arXiv](https://arxiv.org/abs/2310.10108?utm_source=chatgpt.com)) | **是**。([GitHub](https://github.com/LehengTHU/Agent4Rec?utm_source=chatgpt.com)) | **辅助参考。** 更像 user simulator，适合作为不同 memory substrate 的对照，不建议作为你的第一个分析对象。 |
 
 
 
@@ -162,3 +116,61 @@ c. **其他问题**
    ~~强行~~解释：pointwise每次只看到一个candidate，不会被其他candidate生成的模式所影响，让user memory主导评测。而在没那么强的negative sample上反而可以用listwise进行item之间的对比。
    
 5. 使用no llm的基于分词匹配的方案效果远高于任何模型（包括MemRec、SAGER）
+
+
+
+## 决定做的方向：b.2
+
+
+
+*<u>**什么是窄化，作时间序列图，最开始分散后面集中。**</u>*
+
+*<u>**anchor**</u>*
+
+**<u>Alpha edit</u>**
+
+> **先证明自己的机制解释是对的，再证明基于这个解释设计的方法有效。**
+
+1. Repeated LLM update causes memory narrowing.
+2. Define and measure what “narrowing” means.
+3. Identify which information is systematically lost.
+4. Show narrowing predicts recommendation degradation.
+5. Use controlled studies to isolate its cause.
+6. Derive a minimal intervention from that cause.
+7. Show the intervention improves MemRec / other Agentic Rec.
+
+下一步干啥：
+
+1. 分析不同模型的内存更新偏好，以及每个内存更新的优缺点
+2. 画一个memory迭代图
+3. 
+
+
+
+**Analysis-driven paper**总体的步骤是：
+
+1. 先提出一个新的分析视角，并用理论推导 + 一系列机制实验验证它
+2. 根据这个分析，解决方案非常直接，因此方法本身很小
+3. 再证明这个小改动确实有效，而且具有一定通用性
+
+
+
+先验证现象是否存在
+
+- 最新的memory更新的rec模型改进分类
+
+- 有了别人的经验设计一个实验框架。（其他相同类型工作的作者都认可的setting）
+- 产物：一个方法/机制，不耦合于代码。像lora一样能够整合到其他模型当中。
+
+
+
+现有的工作
+
+| 工作                                    | 是否真正连续更新                                             | 是否开源                                                     | 对你研究的价值                                               |
+| --------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **AgentCF, WWW 2024**                   | **是**。每轮 user/item interaction 后根据正负 item 和预测结果做 reflection，更新 user/item memory；论文明确写 `Collaborative Reflection and Memory Update`，而且 interaction/reflection 会迭代进行。([OpenReview](https://openreview.net/pdf?id=knAtuqBXDV&utm_source=chatgpt.com)) | **是**，官方代码公开。([GitHub](https://github.com/RUCAIBox/AgentCF?utm_source=chatgpt.com)) | **非常高。** 最标准的“旧 textual memory → LLM reflection → 新 textual memory”，非常适合研究 repeated rewriting 是否 narrowing。 |
+| **i²Agent / iAgent, ACL Findings 2025** | **是，而且特别干净。** 用户 profile 满足 $F^T=M(F^{T-1},\text{new feedback},\dots)$，上一轮生成的 profile 直接进入下一轮，再根据最新正样本/feedback 重写。([ResearchGate](https://www.researchgate.net/publication/394269751_iAgent_LLM_Agent_as_a_Shield_between_User_and_Recommender_Systems?utm_source=chatgpt.com)) | **是**，代码和 InstructRec 数据都公开。([GitHub](https://github.com/WujiangXu/iAgent?utm_source=chatgpt.com)) | **我最推荐先做。** 它基本就是你想分析的 recursive user-profile rewriting，没有 collaborative graph 等复杂因素。 |
+| **AgentCF++, SIGIR 2025**               | **是**。继承 AgentCF 的逐 interaction memory update，同时加入 single-domain / cross-domain user memory。代码中明确循环处理 interaction，读取旧 memory、LLM 生成新 memory、覆盖保存。([GitHub](https://github.com/jhliu0807/AgentCF-plus/blob/main/AgentCF%2B%2B.py)) | **是**。([GitHub](https://github.com/jhliu0807/AgentCF-plus?utm_source=chatgpt.com)) | **非常高。** 更妙的是代码已经有 `save_old_memory`、`save_new_memory`，并且每处理 10% interaction 就 `save_memory` 做 checkpoint，天然适合你做 memory trajectory analysis。([GitHub](https://github.com/jhliu0807/AgentCF-plus/blob/main/AgentCF%2B%2B.py)) |
+| **MemRec, ACL 2026**                    | **是**。论文明确写 $M_u^t,M_i^t\leftarrow LM_{Mem}(M_u^{t-1},M_i^{t-1},\dots)$，用户每次与 item 交互后更新当前 user/item memory，同时向 neighbor propagation。([ResearchGate](https://www.researchgate.net/publication/399754091_MemRec_Collaborative_Memory-Augmented_Agentic_Recommender_System?utm_source=chatgpt.com)) | **是，完整 repo 已公开**，包含 memory manager、pruner、dataset conversion 和运行脚本。([GitHub](https://github.com/rutgerswiselab/memrec)) | **高，但适合第二阶段。** 它比前三个复杂，因为 narrowing 可能同时来自 self-rewrite 和 collaborative propagation。可以研究“isolated narrowing vs collaborative contamination”。 |
+| **Agent4Rec, SIGIR 2024**               | **memory 会随模拟过程积累/反思**，包括 factual memory、emotional memory 和 reflection，但不是最纯粹的“不断重写同一个 preference profile”。([arXiv](https://arxiv.org/abs/2310.10108?utm_source=chatgpt.com)) | **是**。([GitHub](https://github.com/LehengTHU/Agent4Rec?utm_source=chatgpt.com)) | **辅助参考。** 更像 user simulator，适合作为不同 memory substrate 的对照，不建议作为你的第一个分析对象。 |
+
