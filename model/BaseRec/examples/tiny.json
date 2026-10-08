@@ -1,0 +1,9 @@
+{
+  "item_metadata": {
+    "1": {"title": "Riverside Cafe", "city": "Shanghai", "categories": ["Cafe"], "price": "$$", "rating": 4.5, "attributes": {"OutdoorSeating": true, "Delivery": false}, "hours": {"Monday": "08:00-18:00"}},
+    "2": {"title": "Garden Tea", "city": "Shanghai", "categories": ["Tea"], "price": "$$", "attributes": {"Quiet": true}},
+    "3": {"title": "Local Noodles", "city": "Shanghai", "categories": ["Noodles"], "price": "$"}
+  },
+  "histories": {"10": [1, 2, 3], "20": [2, 1]},
+  "candidates": {"10": [1, 2, 3], "20": [3, 1, 2]}
+}

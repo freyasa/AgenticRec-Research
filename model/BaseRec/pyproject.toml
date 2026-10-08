@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baserec"
+version = "0.1.0"
+description = "A positive-feedback LLM recommendation baseline with a single user memory"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+tokenizer = ["tiktoken>=0.7"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "scripts*"]
+
+[project.scripts]
+run-baserec = "scripts.run_baserec:main"
