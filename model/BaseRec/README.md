@@ -103,7 +103,11 @@ print(result["rank"])
 ## Experiment 1: Memory Value Identification
 
 The frozen-memory evaluation reuses a single completed BaseRec snapshot; it does
-**not** regenerate memory for each context. Prepare a dataset using the same
+**not** regenerate memory for each context. Formal evaluation requires the
+matching training `manifest.json` next to `final_memories.json`, so the
+dataset hash can be checked. A missing manifest fails closed; only exploratory
+legacy snapshots should use `--allow-unverified-memories`.
+Prepare a dataset using the same
 train-prefix / held-out protocol as the original run:
 
 ```bash
@@ -124,6 +128,12 @@ python3.11 scripts/run_memory_value.py \
 ```
 
 To resume an interrupted experiment, repeat the same command with `--resume`.
+The runner checks metadata coverage **before** making any LLM requests. In
+particular, `history_full` cannot run with zero usable training descriptions.
+The output `input_audit` reports partial metadata coverage, empty train
+prefixes, and users with repeated held-out items. Always inspect it before
+interpreting the results.
+
 Per-call results are saved in `runs/value/records`; summaries contain
 mode-level NDCG/MRR, per-user metrics, response validity, context byte counts,
 and inference usage when the endpoint supplies token metadata.
