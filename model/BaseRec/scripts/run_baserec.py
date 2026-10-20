@@ -260,7 +260,7 @@ def execute(args, llm=None) -> dict:
                     token_limiter=limiter, json_point_format=args.json_point_format,
                     json_min_points=args.json_min_points, json_max_points=args.json_max_points,
                     max_memory_sentences=args.max_memory_sentences, max_generation_tokens=args.max_generation_tokens,
-                    training_inference=not args.skip_training_inference)
+                    training_inference=not getattr(args, "skip_training_inference", False))
     manifest = protocol_manifest(args, model)
     fingerprint = manifest["fingerprint"]
     schedule = build_update_schedule(histories)
