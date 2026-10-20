@@ -105,6 +105,7 @@ class ValueRunnerTests(unittest.TestCase):
             permutations=2, modes="candidate_only,history_titles,real_memory,shuffled_memory",
             include_candidate_description=False, allow_repair=False,
             max_generation_tokens=1024, resume=False,
+            allow_unverified_memories=True,
         )
 
     def tearDown(self):
@@ -115,6 +116,9 @@ class ValueRunnerTests(unittest.TestCase):
         result = value.execute(self.args, llm)
         self.assertEqual(result["users"], 2)
         self.assertEqual(result["permutations"], 2)
+        self.assertFalse(result["snapshot_provenance_verified"])
+        self.assertEqual(result["input_audit"]["users_with_training_history"], 2)
+        self.assertGreater(result["input_audit"]["interactions_with_title"], 0)
         self.assertEqual(len(llm.calls), 16)
         self.assertEqual(result["metrics"]["history_titles"]["ranking_repair_count"], 0)
         rows = [json.loads(p.read_text())["result"]
@@ -139,6 +143,28 @@ class ValueRunnerTests(unittest.TestCase):
         resumed_llm = FakeLLM(ranking=[3, 2, 1])
         self.assertEqual(result, value.execute(self.args, resumed_llm))
         self.assertEqual(resumed_llm.calls, [])
+
+    def test_unverified_memory_snapshot_rejected_by_default(self):
+        self.args.allow_unverified_memories = False
+        with self.assertRaisesRegex(ValueError, "provenance cannot be verified"):
+            value.execute(self.args, FakeLLM())
+
+    def test_no_descriptions_fail_before_llm_calls(self):
+        dataset = json.loads(self.input.read_text())
+        dataset["item_metadata"]["1"].pop("description", None)
+        self.input.write_text(json.dumps(dataset), encoding="utf-8")
+        self.args.modes = "history_titles,history_full"
+        llm = FakeLLM()
+        with self.assertRaisesRegex(ValueError, "no usable descriptions"):
+            value.execute(self.args, llm)
+        self.assertEqual(llm.calls, [])
+
+    def test_input_audit_reports_source_gaps(self):
+        histories = {10: [1, 2, 3], 20: [2, 1]}
+        audit = value.audit_history_coverage(METADATA, histories)
+        self.assertEqual(audit["training_interactions"], 3)
+        self.assertEqual(audit["interactions_with_description"], 1)
+        self.assertEqual(audit["history_full_identical_to_titles_for_users"], 1)
 
     def test_snapshot_manifest_mismatch_rejected(self):
         (self.memories.parent / "manifest.json").write_text(

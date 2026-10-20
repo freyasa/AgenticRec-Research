@@ -68,6 +68,39 @@ def context_for(mode: str, user: int, histories: dict, metadata: dict,
     raise ValueError(f"Invalid mode: {mode}")
 
 
+def audit_history_coverage(metadata: dict, histories: dict) -> dict:
+    """Summarize field availability before making any paid LLM calls."""
+    from src.models.base_rec import positive_item_evidence, sanitize_item_description
+    total, titles, descriptions, structured = 0, 0, 0, 0
+    active_users, users_with_description = 0, 0
+    repeated_targets = 0
+    for history in histories.values():
+        prefix = history[:-1]
+        if prefix:
+            active_users += 1
+        repeated_targets += int(history[-1] in prefix)
+        desc_found = False
+        for item_id in prefix:
+            total += 1
+            facts = metadata[item_id]
+            title = sanitize_item_description(facts.get("title") or facts.get("name"))
+            description = sanitize_item_description(facts.get("description"))
+            titles += int(isinstance(title, str) and bool(title))
+            has_desc = isinstance(description, str) and bool(description)
+            descriptions += int(has_desc)
+            desc_found = desc_found or has_desc
+            structured += int(bool(positive_item_evidence(facts)))
+        users_with_description += int(desc_found)
+    return {
+        "training_interactions": total, "users_with_training_history": active_users,
+        "interactions_with_title": titles, "interactions_with_description": descriptions,
+        "interactions_with_structured_evidence": structured,
+        "users_with_training_description": users_with_description,
+        "users_with_heldout_item_previously_seen": repeated_targets,
+        "history_full_identical_to_titles_for_users": len(histories) - users_with_description,
+    }
+
+
 def protocol(args, modes: tuple[str, ...]) -> dict:
     root = Path(__file__).resolve().parents[1]
     cfg = {
@@ -81,6 +114,7 @@ def protocol(args, modes: tuple[str, ...]) -> dict:
         "permutations": args.permutations,
         "include_candidate_description": args.include_candidate_description,
         "allow_repair": args.allow_repair,
+        "allow_unverified_memories": args.allow_unverified_memories,
         "max_generation_tokens": args.max_generation_tokens,
         "source_sha256": {
             str(p.relative_to(root)): sha256_file(p)
@@ -108,12 +142,29 @@ def execute(args, llm=None) -> dict:
     if any(not isinstance(v, str) for v in raw_memories.values()):
         raise ValueError("Memory values must be strings")
 
-    # When the snapshot comes from a BaseRec run, verify the original dataset.
+    # Fail closed for published results: a bare JSON memory snapshot is not proof
+    # of which history/labels were used to build it.
     training_manifest = args.memories.parent / "manifest.json"
-    if training_manifest.exists():
+    snapshot_verified = training_manifest.exists()
+    if not snapshot_verified and not args.allow_unverified_memories:
+        raise ValueError(
+            "Memory snapshot has no sibling manifest.json; provenance cannot be verified. "
+            "For exploratory/legacy memory files only, use --allow-unverified-memories."
+        )
+    if snapshot_verified:
         original = json.loads(training_manifest.read_text(encoding="utf-8"))
         if original.get("protocol", {}).get("input_sha256") != sha256_file(args.input):
             raise ValueError("Memory snapshot was built from a different input dataset")
+
+    input_audit = audit_history_coverage(metadata, histories)
+    if "history_full" in modes and input_audit["interactions_with_description"] == 0:
+        raise ValueError(
+            "history_full has no usable descriptions in the training history; "
+            "it would be identical to history_titles. Supply proper description metadata "
+            "or remove history_full from --modes."
+        )
+    if "history_titles" in modes and input_audit["interactions_with_title"] == 0:
+        raise ValueError("history_titles has no usable titles in the training history")
 
     memories = {u: raw_memories[str(u)] for u in histories}
     user_ids = list(histories)
@@ -205,6 +256,8 @@ def execute(args, llm=None) -> dict:
             "candidate_description_enabled": args.include_candidate_description,
             "strict_ranking": not args.allow_repair,
             "memory_generation_cost_included": False,
+            "snapshot_provenance_verified": snapshot_verified,
+            "input_audit": input_audit,
             "metrics": {
                 mode: {
                     "overall": evaluation_metrics(rows),
@@ -241,6 +294,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--include-candidate-description", action="store_true")
     result.add_argument("--allow-repair", action="store_true",
                         help="Legacy mode: append missing candidate ids in input order")
+    result.add_argument("--allow-unverified-memories", action="store_true",
+                        help="Exploratory only: accept memory snapshots lacking a training manifest")
     result.add_argument("--max-generation-tokens", type=int, default=1024)
     result.add_argument("--resume", action="store_true")
     return result
