@@ -246,7 +246,6 @@ uptodate
 
 
 
-
 *260930 下一步该做什么？*
 
 1. 分析一下TierMem的text memory
@@ -292,6 +291,8 @@ uptodate
 
 按照输出评测：Recommendation Quality（NDCG / MRR / Preference Discrimination）
 
+
+
 那么根据*Does Memory Need Graphs? A Unified Framework and Empirical Analysis for Long-Term Dialog Memory*，我们需要把每个流程分的更细，然后控制变量看看不同流程的东西
 
 
@@ -305,4 +306,117 @@ uptodate
 
 感觉删除是一个切入点
 
-在我们反复讨论过的所有问题中，有没有一个更深层次的问题，是我一直在围着他打转，却始终没有真正问出口的？
+*在我们反复讨论过的所有问题中，有没有一个更深层次的问题，是我一直在围着他打转，却始终没有真正问出口的？*
+
+
+
+**在有限 Memory Budget 下，LLM 如何决定什么信息值得写入、保留、替换或删除？这些决策有没有真实的推荐价值？**
+
+先确定 Memory 有什么价值 → 判断价值受什么限制 → 解释限制来自什么机制 → 最后才设计干预。
+
+
+
+## Bottleneck Localization
+
+Construction
+
+原始历史中有某种偏好，但最初构造的 Memory 没有提取出来。
+
+比较
+
+- Raw History：直接提供历史文本。
+- One-shot Memory：LLM 读取历史后总结。
+- Grounded Memory：从原始 metadata 直接提取统计和证据，按照固定格式构造，不依赖 LLM 猜测。
+
+Evolution
+
+Memory 原来包含这种偏好，经过若干轮 Update 后丢失或被错误修改。
+
+比较
+
+| 方法          | 操作                                     |
+| ------------- | ---------------------------------------- |
+| One-shot      | 使用截至 \(t\) 的完整 History 一次性总结 |
+| Recursive     | 逐条 Interaction 更新                    |
+| Append/Select | 保留证据记录并在预算内选择               |
+
+Utilization
+
+Memory 正确保留了偏好，但 LLM 没有有效用于 Candidate Ranking。
+
+| Reader         | 做法                                         |
+| -------------- | -------------------------------------------- |
+| Vanilla        | Memory + Candidates → Ranking                |
+| Evidence-aware | Memory + Candidates → 相关偏好提取 → Ranking |
+
+
+
+### Experiment 1：Memory 有没有真正发挥作用？
+
+先比较四组，全部使用同一个 Frozen LLM Ranker。
+
+| 设置               | 提供的信息                      |
+| ------------------ | ------------------------------- |
+| A. No Memory       | Candidates                      |
+| B. Shuffled Memory | 其他用户的 Memory + Candidates  |
+| C. Real Memory     | 当前用户的 Memory + Candidates  |
+| D. Raw History     | 当前用户的历史信息 + Candidates |
+
+因为 C 优于 A，只能说明“加入某段 Memory 可能有帮助”。
+
+但如果 C 和 B 表现接近，说明个性化信息的作用可能很有限，或者 Reader 没有正确利用这种用户差异。
+
+反过来，如果 C 显著优于 B，就有证据表明当前模型确实利用了用户特异性的 Memory。
+
+但要控制 Memory 长度及不同用户之间的兴趣相似性，并在不同用户子群上检查。
+
+### Experiment 2：定位三个阶段
+
+在 Experiment 1 确认 Memory 至少在部分情境下有价值后，再构造：
+
+| 比较                           | 要排查的问题                           |
+| ------------------------------ | -------------------------------------- |
+| Raw History vs One-shot Memory | Construction 是否引入信息抽取/压缩损失 |
+| One-shot vs Evolving Memory    | Evolution 是否引入额外变化或损失       |
+| 同一 Memory + 不同 Reader      | Utilization 是否限制信息发挥作用       |
+
+这个阶段不能只看 NDCG。
+
+应该增加一层 Memory Quality 的中间指标，例如：\[Q_{\text{memory}}= (\text{Coverage},\text{Faithfulness},\text{Retention})\]
+
+其中：
+
+- Coverage：Memory 覆盖多少有来源的用户历史证据。
+- Faithfulness：Memory 中有多少信息能被历史支持。
+- Retention：已存在且仍然有效的旧证据，在更新后是否得以保留。
+
+再增加决策层面的指标：Preference Discrimination。
+
+这样你能够区分：
+
+Memory 里面没有信息，还是 Memory 有信息但模型不会使用。
+
+
+
+### Experiment 3：再研究删除与替换
+
+这是我认为最可能形成你独立论文方向的部分，但应该建立在前面诊断结果之上。
+
+你可以将 Memory Update 分类为：
+
+| 操作            | 含义                     |
+| --------------- | ------------------------ |
+| Add             | 新增有效偏好证据         |
+| Preserve        | 保留原有证据             |
+| Modify          | 修改已有偏好的强度或内容 |
+| Delete          | 删除已有偏好             |
+| No-op           | 无实质变化               |
+| Unsupported Add | 新增缺乏证据的偏好       |
+
+接下来问一个问题：
+
+> Are memory deletion and replacement decisions aligned with the future utility of user preferences?
+
+也就是：
+
+LLM 更新时删掉的偏好，是否恰好是对未来推荐不重要的那些？
