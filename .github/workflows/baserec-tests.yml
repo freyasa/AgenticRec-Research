@@ -1,0 +1,22 @@
+name: BaseRec unit tests
+
+on:
+  pull_request:
+    paths:
+      - "model/BaseRec/**"
+      - ".github/workflows/baserec-tests.yml"
+  push:
+    branches:
+      - "feat/baserec-memory-value-eval"
+
+jobs:
+  baserec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run offline unit tests
+        working-directory: model/BaseRec
+        run: python3 -m unittest discover -s tests -v
