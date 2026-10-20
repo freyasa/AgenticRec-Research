@@ -98,3 +98,69 @@ print(result["rank"])
 ```
 
 `set_state` 接收完整 `get_state()` 结果；`apply_recorded_interaction` 要求记录的旧 memory 与当前 memory 完全一致，并且不能在冻结后调用。所有测试可离线执行，覆盖核心协议、三种输出、token 策略、事务失败、原子持久化、断点恢复、进程锁、HTTP 请求格式和指标计算。
+
+
+## Experiment 1: Memory Value Identification
+
+The frozen-memory evaluation reuses a single completed BaseRec snapshot; it does
+**not** regenerate memory for each context. Prepare a dataset using the same
+train-prefix / held-out protocol as the original run:
+
+```bash
+# Train once. The affinity prediction before update is optional and not used
+# by the memory updater, so it can be skipped for cost-sensitive runs.
+python3.11 scripts/run_baserec.py \
+  --input /path/to/dataset.json --output runs/memory \
+  --endpoint http://localhost:8000/v1 --model your-model \
+  --skip-training-inference
+
+# Evaluate every context with the same frozen ranker and candidate permutations.
+python3.11 scripts/run_memory_value.py \
+  --input /path/to/dataset.json \
+  --memories runs/memory/final_memories.json \
+  --output runs/value \
+  --endpoint http://localhost:8000/v1 --model your-model \
+  --seed 42 --permutations 3
+```
+
+To resume an interrupted experiment, repeat the same command with `--resume`.
+Per-call results are saved in `runs/value/records`; summaries contain
+mode-level NDCG/MRR, per-user metrics, response validity, context byte counts,
+and inference usage when the endpoint supplies token metadata.
+
+Supported modes (select a subset with `--modes`):
+- `candidate_only`: empty user context, candidate facts still visible.
+- `history_titles`: training-prefix item names/titles, in chronological order.
+- `history_full`: names/titles plus descriptions from the same training prefix.
+- `history_structured`: the exact allowlisted categories/geography/price/
+  affirmative attributes visible to the BaseRec updater.
+- `real_memory`: the frozen memory from that same user.
+- `shuffled_memory`: another evaluation user's memory, using a deterministic
+  derangement; requires two or more users.
+
+All modes see identical candidate facts and identical candidate permutations.
+`--include-candidate-description` supplies candidate descriptions to
+**every** mode; the default preserves the original candidate-fact fields.
+Incomplete or duplicate ranking outputs are rejected and retried by default,
+rather than silently repaired. `--allow-repair` restores legacy behavior
+only for diagnostics. `--resume` validates the experiment fingerprint and
+saved-result hashes; changes to inputs, model, flags, or source require a new output directory.
+
+**Scientific controls:** These modes are not all information-matched.
+BaseRec's *updater* sees structured positive evidence but not titles/descriptions,
+whereas `history_full` can see richer historical item text.
+Use `history_structured` for the closest input-source control.
+Control input budgets explicitly in a follow-up experiment rather than claiming
+that any observed NDCG difference is solely caused by memory compression.
+The study reports *inference* costs only: cost of generating/updating the saved
+memories must be included separately for total-cost claims.
+Hold out a separate validation interaction when tuning prompts or budgets;
+do not repeatedly tune against the final test target.
+
+The normal BaseRec training runner remains backward-compatible: training
+inference is on by default and the existing `rank_candidates(user,candidates,target)`
+API still works. Passing `user_context=` explicitly switches to the
+common context-agnostic evaluation prompt. Update event logs now also include
+`update_audit` (raw model output, normalized pre-limit output and
+truncation details). Old run manifests are protected by source fingerprints;
+do not attempt to resume an old run after changing the code.
