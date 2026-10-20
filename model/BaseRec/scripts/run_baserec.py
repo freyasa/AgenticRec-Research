@@ -259,7 +259,8 @@ def execute(args, llm=None) -> dict:
                     memory_token_limit_mode=args.memory_token_limit_mode, memory_token_limit=args.memory_token_limit,
                     token_limiter=limiter, json_point_format=args.json_point_format,
                     json_min_points=args.json_min_points, json_max_points=args.json_max_points,
-                    max_memory_sentences=args.max_memory_sentences, max_generation_tokens=args.max_generation_tokens)
+                    max_memory_sentences=args.max_memory_sentences, max_generation_tokens=args.max_generation_tokens,
+                    training_inference=not args.skip_training_inference)
     manifest = protocol_manifest(args, model)
     fingerprint = manifest["fingerprint"]
     schedule = build_update_schedule(histories)
@@ -377,6 +378,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--max-memory-words", type=int, default=180)
     result.add_argument("--max-memory-sentences", type=int, default=8)
     result.add_argument("--max-generation-tokens", type=int, default=1024)
+    result.add_argument("--skip-training-inference", action="store_true",
+                        help="Avoid diagnostic affinity calls that do not affect memory updates")
     result.add_argument("--memory-output-format", choices=["text", "json_points"], default="text")
     result.add_argument("--memory-token-limit-mode", choices=["none", "soft", "hard", "soft_hard"], default="none")
     result.add_argument("--memory-token-limit", type=int)
